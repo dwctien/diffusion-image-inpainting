@@ -36,10 +36,3 @@ outputs/masks/*
 outputs/visualizations/*
 outputs/metrics/*
 
-!data/raw/.gitkeep
-!data/test/.gitkeep
-!data/samples/.gitkeep
-!outputs/images/.gitkeep
-!outputs/masks/.gitkeep
-!outputs/visualizations/.gitkeep
-!outputs/metrics/.gitkeep
