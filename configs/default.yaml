@@ -1,0 +1,26 @@
+model:
+  model_id: "stabilityai/stable-diffusion-2-inpainting"
+  device: "cuda"
+  torch_dtype: "float16"
+
+inference:
+  image_size: 512
+  num_inference_steps: 30
+  guidance_scale: 7.5
+  seed: 42
+  prompt: "a realistic photo"
+
+paths:
+  input_dir: "data/test"
+  output_dir: "outputs"
+  image_output_dir: "outputs/images"
+  mask_output_dir: "outputs/masks"
+  visualization_output_dir: "outputs/visualizations"
+  metrics_output_dir: "outputs/metrics"
+
+mask:
+  default_type: "rectangle"
+  mask_value: 255
+  background_value: 0
+  min_mask_ratio: 0.1
+  max_mask_ratio: 0.4
