@@ -1,4 +1,4 @@
-## Image Inpainting with Diffusion Models
+# Image Inpainting with Diffusion Models
 
 This project builds and evaluates an end-to-end image inpainting pipeline based on a pretrained diffusion inpainting model. It supports masks from random occlusions or user-provided/user-drawn masks, generates plausible image completions, and evaluates results with PSNR, SSIM, LPIPS, and runtime measurements.
 
