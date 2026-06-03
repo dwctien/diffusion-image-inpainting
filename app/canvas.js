@@ -103,10 +103,10 @@ window.MaskPainter = (function () {
     initDone = true;
 
     ctx = canvas.getContext("2d");
-    bgCanvas  = document.createElement("canvas");
-    bgCtx     = bgCanvas.getContext("2d");
+    bgCanvas = document.createElement("canvas");
+    bgCtx = bgCanvas.getContext("2d");
     maskCanvas = document.createElement("canvas");
-    maskCtx    = maskCanvas.getContext("2d");
+    maskCtx = maskCanvas.getContext("2d");
 
     // default placeholder size
     canvas.width = 512; canvas.height = 340;
@@ -115,9 +115,9 @@ window.MaskPainter = (function () {
     showPlaceholder();
 
     // toolbar buttons
-    document.querySelectorAll(".mp-tool").forEach(function(btn) {
-      btn.addEventListener("click", function() {
-        document.querySelectorAll(".mp-tool").forEach(function(b) { b.classList.remove("active"); });
+    document.querySelectorAll(".mp-tool").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(".mp-tool").forEach(function (b) { b.classList.remove("active"); });
         btn.classList.add("active");
         tool = btn.dataset.tool;
         canvas.style.cursor = tool === "eraser" ? "cell" : "crosshair";
@@ -125,7 +125,7 @@ window.MaskPainter = (function () {
     });
     var slider = document.getElementById("mp-brush-size");
     var sizeLabel = document.getElementById("mp-size-label");
-    if (slider) slider.addEventListener("input", function() {
+    if (slider) slider.addEventListener("input", function () {
       brushSize = parseInt(slider.value);
       if (sizeLabel) sizeLabel.textContent = brushSize + "px";
     });
@@ -137,9 +137,9 @@ window.MaskPainter = (function () {
     canvas.addEventListener("mousemove", onMove);
     canvas.addEventListener("mouseup", onUp);
     canvas.addEventListener("mouseleave", onUp);
-    canvas.addEventListener("touchstart", function(e) { e.preventDefault(); onDown(e); }, { passive: false });
-    canvas.addEventListener("touchmove",  function(e) { e.preventDefault(); onMove(e); }, { passive: false });
-    canvas.addEventListener("touchend",   function(e) { e.preventDefault(); onUp(e);   }, { passive: false });
+    canvas.addEventListener("touchstart", function (e) { e.preventDefault(); onDown(e); }, { passive: false });
+    canvas.addEventListener("touchmove", function (e) { e.preventDefault(); onMove(e); }, { passive: false });
+    canvas.addEventListener("touchend", function (e) { e.preventDefault(); onUp(e); }, { passive: false });
   }
 
   function showPlaceholder() {
@@ -155,21 +155,19 @@ window.MaskPainter = (function () {
   function loadImage(b64) {
     if (!b64 || !canvas) return;
     var img = new Image();
-    img.onload = function() {
+    img.onload = function () {
       var w = img.width, h = img.height;
-      canvas.width = w;     canvas.height = h;
-      bgCanvas.width = w;   bgCanvas.height = h;
-      maskCanvas.width = w;  maskCanvas.height = h;
+      canvas.width = w; canvas.height = h;
+      bgCanvas.width = w; bgCanvas.height = h;
+      maskCanvas.width = w; maskCanvas.height = h;
       // draw background
       bgCtx.drawImage(img, 0, 0);
       // mask starts fully transparent (no mask)
       maskCtx.clearRect(0, 0, w, h);
       imageLoaded = true;
       // responsive display
-      var maxW = 580;
-      var scale = Math.min(maxW / w, 1);
-      canvas.style.width  = Math.round(w * scale) + "px";
-      canvas.style.height = Math.round(h * scale) + "px";
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
       redraw();
     };
     img.src = b64;
@@ -200,7 +198,7 @@ window.MaskPainter = (function () {
     drawing = true;
     var p = pos(e);
     startX = p.x; startY = p.y;
-    lastX  = p.x; lastY  = p.y;
+    lastX = p.x; lastY = p.y;
 
     if (tool === "brush") {
       brushDot(p.x, p.y);
@@ -263,7 +261,7 @@ window.MaskPainter = (function () {
   if (document.getElementById("mask-draw-canvas")) {
     window.MaskPainter.init();
   } else if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function() { window.MaskPainter.init(); });
+    document.addEventListener("DOMContentLoaded", function () { window.MaskPainter.init(); });
   } else {
     setTimeout(tryInit, 400);
   }
