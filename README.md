@@ -1,89 +1,252 @@
 # Image Inpainting with Diffusion Models
 
-This project builds and evaluates an end-to-end image inpainting pipeline based on a pretrained diffusion inpainting model. It supports masks from random occlusions or user-provided/user-drawn masks, generates plausible image completions, and evaluates results with PSNR, SSIM, LPIPS, and runtime measurements.
+Đồ án xây dựng pipeline Image Inpainting sử dụng mô hình diffusion đã huấn luyện sẵn. Hệ thống nhận ảnh gốc và vùng mask cần khôi phục, sau đó sinh phần ảnh bị che bằng Stable Diffusion Inpainting. Repo hỗ trợ chạy suy luận cho một ảnh, đánh giá hàng loạt trên CelebA-HQ/CelebAMask-HQ, sinh mask ngẫu nhiên và chạy website demo bằng Gradio.
 
-The project currently does **not** train or fine-tune a model. Fine-tuning is optional future work and is not implemented.
+> Trạng thái hiện tại: repo dùng pretrained model từ Hugging Face Diffusers.
 
-## Project Structure
+## Nội dung chính
+
+- Tải mô hình `runwayml/stable-diffusion-inpainting` bằng Diffusers.
+- Tiền xử lý ảnh và mask về cùng kích thước, mặc định `512x512`.
+- Sinh mask ngẫu nhiên theo 3 kiểu: `rectangle`, `rectangles`, `free_form`.
+- Chạy inference cho một cặp ảnh-mask hoặc nhiều ảnh-mask trong cùng thư mục.
+- Chạy batch evaluation trên tập ảnh CelebA-HQ.
+- Tính các chỉ số PSNR, SSIM, LPIPS và thời gian chạy.
+- Lưu ảnh kết quả, mask, ảnh preview và file metrics CSV.
+- Website demo Gradio hỗ trợ upload ảnh, tạo/vẽ mask và chạy inpainting.
+
+## Cấu trúc thư mục
 
 ```text
-image-inpainting-diffusion/
-|-- configs/
-|   `-- default.yaml              Default model, inference, path, and mask settings.
-|-- src/
-|   |-- utils.py                  Config loading, output directories, seeding, image discovery, and image saving.
-|   |-- preprocessing.py          Image/mask loading, resizing, binarization, preparation, and masked previews.
-|   |-- mask_generator.py         Random rectangle, multi-rectangle, and free-form mask generation.
-|   |-- model_loader.py           Hugging Face Diffusers Stable Diffusion inpainting pipeline loader.
-|   |-- pipeline.py               Reusable single-image inpainting pipeline.
-|   |-- metrics.py                PSNR, SSIM, LPIPS, and runtime-related metric functions.
-|   `-- README.md                 Internal documentation for the `src/` modules.
-|-- scripts/
-|   |-- run_inference.py          Command-line single-image inpainting script.
-|   `-- run_evaluation.py         Command-line batch evaluation script for a folder of test images.
-|-- notebooks/
-|   |-- test_model.ipynb          Current Kaggle testing notebook.
-|   |-- demo_colab.ipynb          Planned Colab notebook for launching the Gradio demo.
-|   `-- evaluation_kaggle.ipynb   Planned official evaluation notebook for final experiments.
+diffusion-image-inpainting/
 |-- app/
-|   `-- gradio_app.py             Planned Gradio demo app; not implemented yet.
-|-- data/                         Placeholder folders for local sample data only.
-`-- outputs/                      Placeholder folders for generated images, masks, visualizations, and metrics.
+|   |-- gradio_app.py          Website demo Gradio.
+|   `-- canvas.js              Canvas vẽ mask trong demo.
+|-- configs/
+|   `-- default.yaml           Cấu hình model, inference, đường dẫn và mask.
+|-- data/
+|   |-- raw/                   Dataset gốc tải về, không commit lên git.
+|   `-- prepared/              Dataset đã chọn/lọc để chạy pipeline.
+|-- docs/                      Tài liệu bổ sung cho báo cáo/đồ án.
+|-- notebooks/                 Notebook thử nghiệm trên Kaggle/Colab.
+|-- outputs/
+|   |-- images/                Ảnh inpainted.
+|   |-- masks/                 Mask được dùng khi đánh giá.
+|   |-- visualizations/        Preview và ảnh so sánh.
+|   `-- metrics/               File metrics CSV.
+|-- scripts/
+|   |-- run_inference.py       Chạy inpainting cho một ảnh.
+|   |-- run_batch_inference.py Chạy inpainting cho nhiều ảnh trong thư mục.
+|   `-- run_evaluation.py      Chạy đánh giá hàng loạt.
+|-- src/
+|   |-- mask_generator.py      Sinh mask ngẫu nhiên.
+|   |-- metrics.py             PSNR, SSIM, LPIPS.
+|   |-- model_loader.py        Load Stable Diffusion Inpainting pipeline.
+|   |-- pipeline.py            Logic inpainting dùng lại.
+|   |-- preprocessing.py       Load, resize, chuẩn hóa ảnh và mask.
+|   `-- utils.py               Config, seed, đường dẫn, lưu ảnh.
+|-- requirements.txt
+`-- README.md
 ```
 
-## Current Progress
+## Yêu cầu môi trường
 
-Implemented locally and tested on Kaggle:
+Khuyến nghị chạy trên GPU NVIDIA, đặc biệt khi đánh giá nhiều ảnh hoặc chạy demo. CPU vẫn có thể chạy nhưng rất chậm.
 
-- Config loading and utility functions.
-- Image and mask preprocessing.
-- Random mask generation.
-- Pretrained model loading.
-- Single-image inpainting pipeline.
-- Metrics: PSNR, SSIM, LPIPS, and runtime.
-- `scripts/run_inference.py` for single-image inference.
-- `scripts/run_evaluation.py` for batch evaluation.
+- Python 3.10 hoặc 3.11.
+- CUDA GPU nếu dùng `model.device: "cuda"` trong `configs/default.yaml`.
+- Dung lượng trống cho model cache Hugging Face và dataset CelebA-HQ.
 
-## Current Model
-
-The current default model is:
-
-```text
-runwayml/stable-diffusion-inpainting
-```
-
-This model is loaded through Hugging Face Diffusers. It replaced the original default model because the previous model could not be loaded successfully in the testing environment.
-
-Inference and evaluation are intended to run on Kaggle or Colab GPU. Local CPU inference is not recommended because diffusion-based inpainting is slow and memory-intensive.
-
-## How to Run
-
-Install dependencies:
+Cài thư viện:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Single-image inference
-
-Run inpainting on one image-mask pair:
+Nếu cài PyTorch riêng theo CUDA version của máy, cài PyTorch trước theo hướng dẫn chính thức rồi chạy lại:
 
 ```bash
-python scripts/run_inference.py --config configs/default.yaml --image data/samples/input.jpg --mask data/samples/mask.png
+pip install -r requirements.txt
 ```
 
-Useful arguments:
+## Cấu hình mặc định
 
-- `--config`: path to the YAML configuration file. Defaults to `configs/default.yaml`.
-- `--image`: path to the input image. Required.
-- `--mask`: path to the binary or grayscale mask image. Required. The masked region is the area to be inpainted.
-- `--prompt`: optional text prompt override. If omitted, the prompt from the config file is used.
-- `--negative_prompt`: optional negative prompt for the diffusion model.
-- `--output`: path for the generated inpainted image. Defaults to `outputs/images/result.png`.
-- `--save_masked_preview`: save a preview of the masked input image.
-- `--masked_preview_output`: path for the masked preview image. Defaults to `outputs/visualizations/masked_preview.png`.
+File cấu hình chính nằm ở `configs/default.yaml`.
 
-Example with custom prompt and preview output:
+```yaml
+model:
+  model_id: "runwayml/stable-diffusion-inpainting"
+  device: "cuda"
+  torch_dtype: "float16"
+
+inference:
+  image_size: 512
+  num_inference_steps: 30
+  guidance_scale: 7.5
+  seed: 42
+  prompt: "a realistic photo"
+
+paths:
+  input_dir: "data/test"
+  output_dir: "outputs"
+```
+
+Nếu máy không có GPU, đổi:
+
+```yaml
+model:
+  device: "cpu"
+  torch_dtype: "float32"
+```
+
+## Cách đặt dataset CelebA-HQ
+
+Đặt dataset trong `data/raw/` hoặc `data/prepared/` tùy mục đích.
+
+Nguồn tải CelebA/CelebA-HQ: https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html
+
+### Cấu trúc khuyến nghị
+
+Sau khi tải CelebA-HQ hoặc CelebAMask-HQ, đặt ảnh gốc theo cấu trúc:
+
+```text
+data/
+|-- raw/
+|   `-- CelebAMask-HQ/
+|       `-- CelebA-HQ-img/
+|           |-- 0.jpg
+|           |-- 1.jpg
+|           |-- 2.jpg
+|           `-- ...
+`-- prepared/
+    `-- celeba_hq/
+        `-- test/
+            |-- 0.jpg
+            |-- 1.jpg
+            |-- 2.jpg
+            `-- ...
+```
+
+Pipeline evaluation hiện đọc ảnh trong `input_dir` theo kiểu không đệ quy. Vì vậy thư mục truyền vào `--input_dir` phải chứa trực tiếp các file ảnh `.jpg`, `.jpeg`, `.png`, `.bmp` hoặc `.webp`.
+
+Ví dụ hợp lệ:
+
+```text
+data/prepared/celeba_hq/test/000001.jpg
+data/prepared/celeba_hq/test/000002.jpg
+data/prepared/celeba_hq/test/000003.jpg
+```
+
+Ví dụ không hợp lệ nếu truyền `--input_dir data/prepared/celeba_hq`:
+
+```text
+data/prepared/celeba_hq/test/000001.jpg
+```
+
+Trong trường hợp này phải truyền đúng thư mục con:
+
+```bash
+python scripts/run_evaluation.py --input_dir data/prepared/celeba_hq/test
+```
+
+### Chuẩn bị tập test nhỏ
+
+Có thể copy một số ảnh CelebA-HQ vào thư mục test để chạy thử nhanh:
+
+```powershell
+New-Item -ItemType Directory -Force data\prepared\celeba_hq\test
+Copy-Item data\raw\CelebAMask-HQ\CelebA-HQ-img\0.jpg data\prepared\celeba_hq\test\0.jpg
+Copy-Item data\raw\CelebAMask-HQ\CelebA-HQ-img\1.jpg data\prepared\celeba_hq\test\1.jpg
+Copy-Item data\raw\CelebAMask-HQ\CelebA-HQ-img\2.jpg data\prepared\celeba_hq\test\2.jpg
+```
+
+Trên Linux/Colab/Kaggle:
+
+```bash
+mkdir -p data/prepared/celeba_hq/test
+cp data/raw/CelebAMask-HQ/CelebA-HQ-img/0.jpg data/prepared/celeba_hq/test/0.jpg
+cp data/raw/CelebAMask-HQ/CelebA-HQ-img/1.jpg data/prepared/celeba_hq/test/1.jpg
+cp data/raw/CelebAMask-HQ/CelebA-HQ-img/2.jpg data/prepared/celeba_hq/test/2.jpg
+```
+
+Nếu muốn dùng toàn bộ ảnh, có thể đặt trực tiếp thư mục ảnh gốc làm `--input_dir`:
+
+```bash
+python scripts/run_evaluation.py \
+  --config configs/default.yaml \
+  --input_dir data/raw/CelebAMask-HQ/CelebA-HQ-img \
+  --output_dir outputs/celeba_hq_eval \
+  --num_samples 100 \
+  --mask_type rectangle \
+  --save_visualizations
+```
+
+## Chạy pipeline với CelebA-HQ
+
+### 1. Chạy thử nhanh trên vài ảnh
+
+```bash
+python scripts/run_evaluation.py \
+  --config configs/default.yaml \
+  --input_dir data/prepared/celeba_hq/test \
+  --output_dir outputs/celeba_hq_debug \
+  --num_samples 5 \
+  --mask_type rectangle \
+  --prompt "a realistic photo" \
+  --lpips_device cuda \
+  --save_visualizations
+```
+
+Kết quả được lưu tại:
+
+```text
+outputs/celeba_hq_debug/
+|-- images/             Ảnh inpainted.
+|-- masks/              Mask sinh ngẫu nhiên.
+|-- visualizations/     Ảnh masked preview và comparison.
+`-- metrics/
+    `-- metrics.csv     PSNR, SSIM, LPIPS, runtime_sec.
+```
+
+### 2. Chạy evaluation cho nhiều ảnh
+
+Sau khi chạy thử thành công, tăng số lượng ảnh:
+
+```bash
+python scripts/run_evaluation.py \
+  --config configs/default.yaml \
+  --input_dir data/prepared/celeba_hq/test \
+  --output_dir outputs/celeba_hq_eval \
+  --num_samples 1000 \
+  --mask_type rectangle \
+  --prompt "a realistic photo" \
+  --lpips_device cuda \
+  --save_visualizations
+```
+
+Các kiểu mask được hỗ trợ:
+
+- `rectangle`: một vùng chữ nhật.
+- `rectangles`: nhiều vùng chữ nhật.
+- `free_form`: mask dạng nét vẽ tự do.
+
+Ví dụ chạy với free-form mask:
+
+```bash
+python scripts/run_evaluation.py \
+  --config configs/default.yaml \
+  --input_dir data/prepared/celeba_hq/test \
+  --output_dir outputs/celeba_hq_free_form \
+  --num_samples 100 \
+  --mask_type free_form \
+  --prompt "a realistic photo" \
+  --lpips_device cuda \
+  --save_visualizations
+```
+
+### 3. Chạy inference cho một ảnh-mask
+
+Lệnh này dùng khi đã có ảnh và mask riêng:
 
 ```bash
 python scripts/run_inference.py \
@@ -97,53 +260,198 @@ python scripts/run_inference.py \
   --masked_preview_output outputs/visualizations/sample_masked_preview.png
 ```
 
-### Batch evaluation
+Quy ước mask:
 
-Run evaluation on a folder of test images:
+- Vùng trắng hoặc giá trị cao là vùng cần inpaint.
+- Vùng đen là phần ảnh được giữ lại.
+- Mask sẽ được resize và nhị phân hóa trong bước preprocessing.
 
-```bash
-python scripts/run_evaluation.py --config configs/default.yaml --input_dir data/test
+### 4. Chạy inference cho nhiều ảnh
+
+Lệnh này dùng khi đã có một thư mục ảnh và một thư mục mask tương ứng. Script sẽ load model một lần, sau đó chạy lần lượt từng ảnh.
+
+Quy ước đặt file:
+
+```text
+data/batch/images/
+|-- 000001.jpg
+|-- 000002.jpg
+`-- 000003.jpg
+
+data/batch/masks/
+|-- 000001.png
+|-- 000002.png
+`-- 000003.png
 ```
 
-Useful arguments:
+Ảnh và mask được ghép theo cùng tên file không tính phần mở rộng. Ví dụ `000001.jpg` có thể đi với `000001.png`, `000001.jpg` hoặc `000001.webp`.
 
-- `--config`: path to the YAML configuration file. Defaults to `configs/default.yaml`.
-- `--input_dir`: folder containing test images. If omitted, the input path from the config file is used.
-- `--output_dir`: optional root output folder override. When provided, generated images, masks, visualizations, and metrics are saved under this folder.
-- `--num_samples`: optional limit on the number of images to evaluate. Useful for quick tests.
-- `--mask_type`: random mask type to generate. Supported values are `rectangle`, `rectangles`, and `free_form`.
-- `--prompt`: optional text prompt override. If omitted, the prompt from the config file is used.
-- `--negative_prompt`: optional negative prompt for the diffusion model.
-- `--lpips_device`: device used for LPIPS computation. Defaults to `cuda`.
-- `--save_visualizations`: save side-by-side comparison images containing the original image, mask, masked preview, and inpainted result.
+Chạy batch inference:
 
-Example quick evaluation on 5 images:
+```bash
+python scripts/run_batch_inference.py \
+  --config configs/default.yaml \
+  --image_dir data/batch/images \
+  --mask_dir data/batch/masks \
+  --output_dir outputs/batch_inference \
+  --prompt "a realistic photo" \
+  --negative_prompt "blurry, distorted" \
+  --save_masked_preview
+```
+
+Chạy thử nhanh một số ảnh:
+
+```bash
+python scripts/run_batch_inference.py \
+  --config configs/default.yaml \
+  --image_dir data/batch/images \
+  --mask_dir data/batch/masks \
+  --output_dir outputs/batch_debug \
+  --num_samples 5 \
+  --save_masked_preview
+```
+
+Kết quả được lưu tại:
+
+```text
+outputs/batch_inference/
+|-- images/
+|   |-- 000001_inpainted.png
+|   `-- 000002_inpainted.png
+`-- visualizations/
+    |-- 000001_masked.png
+    `-- 000002_masked.png
+```
+
+## Chạy website demo
+
+Demo nằm trong `app/gradio_app.py`. Ứng dụng sẽ lazy-load model trong lần chạy inpainting đầu tiên.
+
+Chạy demo:
+
+```bash
+python app/gradio_app.py
+```
+
+Mở trình duyệt tại:
+
+```text
+http://localhost:7860
+```
+
+Luồng sử dụng:
+
+1. Upload ảnh gốc.
+2. Tạo mask bằng tab `Random Mask` hoặc vẽ trực tiếp trong tab `Vẽ Mask`.
+3. Chỉnh prompt, negative prompt, số step, guidance, seed và kích thước ảnh.
+4. Bấm chạy inpainting để sinh kết quả.
+
+Nếu chạy trên máy từ xa, Colab hoặc Kaggle, có thể chỉnh cuối file `app/gradio_app.py`:
+
+```python
+app.launch(server_name="0.0.0.0", server_port=7860, share=True)
+```
+
+Trong repo hiện tại `share=False`, phù hợp khi chạy local.
+
+## Tham số dòng lệnh quan trọng
+
+### `scripts/run_evaluation.py`
+
+- `--config`: đường dẫn file YAML, mặc định `configs/default.yaml`.
+- `--input_dir`: thư mục chứa ảnh test.
+- `--output_dir`: thư mục gốc để lưu kết quả.
+- `--num_samples`: giới hạn số ảnh cần chạy.
+- `--mask_type`: `rectangle`, `rectangles` hoặc `free_form`.
+- `--prompt`: prompt cho mô hình diffusion.
+- `--negative_prompt`: nội dung không mong muốn.
+- `--lpips_device`: thiết bị tính LPIPS, thường là `cuda` hoặc `cpu`.
+- `--save_visualizations`: lưu ảnh so sánh original/mask/masked/result.
+
+### `scripts/run_inference.py`
+
+- `--image`: ảnh đầu vào.
+- `--mask`: mask đầu vào.
+- `--prompt`: prompt tùy chọn.
+- `--negative_prompt`: negative prompt tùy chọn.
+- `--output`: đường dẫn ảnh kết quả.
+- `--save_masked_preview`: lưu ảnh preview vùng bị mask.
+- `--masked_preview_output`: đường dẫn preview.
+
+### `scripts/run_batch_inference.py`
+
+- `--image_dir`: thư mục chứa ảnh đầu vào.
+- `--mask_dir`: thư mục chứa mask, ghép với ảnh theo cùng filename stem.
+- `--output_dir`: thư mục gốc lưu kết quả, mặc định `outputs/batch_inference`.
+- `--num_samples`: giới hạn số ảnh cần chạy.
+- `--prompt`: prompt tùy chọn.
+- `--negative_prompt`: negative prompt tùy chọn.
+- `--save_masked_preview`: lưu preview vùng bị mask cho từng ảnh.
+- `--fail_fast`: dừng ngay khi một ảnh lỗi.
+
+## Ghi chú khi chạy trên Kaggle hoặc Colab
+
+- Bật GPU trước khi chạy.
+- Cài dependencies bằng `pip install -r requirements.txt`.
+- Nếu dataset được mount ở đường dẫn khác, truyền trực tiếp vào `--input_dir`.
+- Model Hugging Face sẽ được tải trong lần chạy đầu tiên, cần kết nối mạng.
+- Nên chạy `--num_samples 5` trước để kiểm tra đường dẫn, CUDA và output.
+
+Ví dụ trên Kaggle khi dataset nằm trong `/kaggle/input`:
 
 ```bash
 python scripts/run_evaluation.py \
   --config configs/default.yaml \
-  --input_dir data/test \
-  --output_dir outputs/eval_debug \
-  --num_samples 5 \
+  --input_dir /kaggle/input/celebamaskhq/CelebAMask-HQ/CelebA-HQ-img \
+  --output_dir /kaggle/working/outputs/celeba_hq_eval \
+  --num_samples 100 \
   --mask_type rectangle \
-  --prompt "a realistic photo" \
   --lpips_device cuda \
   --save_visualizations
 ```
 
-Use a small number of images first to verify paths, GPU availability, and output settings before running a larger evaluation.
+## Lỗi thường gặp
 
-## Notebooks
+### Không tìm thấy ảnh trong `input_dir`
 
-- `notebooks/test_model.ipynb`: current Kaggle testing notebook used to verify model loading, single-image inference, and small evaluation.
-- `notebooks/demo_colab.ipynb`: planned notebook for launching the Gradio demo on Colab.
-- `notebooks/evaluation_kaggle.ipynb`: planned official evaluation notebook for final experiments.
+Kiểm tra thư mục truyền vào có chứa trực tiếp file ảnh không. Script không quét đệ quy qua thư mục con.
 
-## Pending Work
+### CUDA không khả dụng
 
-- Finalize experiment design.
-- Run official evaluation on a larger test subset.
-- Summarize metrics and select qualitative examples.
-- Implement the Gradio app.
-- Create and finalize the demo notebook.
-- Update the report with experiment results and limitations.
+Nếu thấy cảnh báo fallback về CPU, kiểm tra lại GPU/CUDA hoặc đổi config:
+
+```yaml
+model:
+  device: "cpu"
+  torch_dtype: "float32"
+```
+
+### LPIPS lỗi trên GPU
+
+Thử chuyển LPIPS sang CPU:
+
+```bash
+python scripts/run_evaluation.py --lpips_device cpu ...
+```
+
+### Hết bộ nhớ GPU
+
+Giảm các tham số:
+
+- `inference.image_size`: từ `512` xuống `256`.
+- `inference.num_inference_steps`: từ `30` xuống `20`.
+- `--num_samples`: chạy ít ảnh hơn cho mỗi lần.
+
+## Kết quả đầu ra
+
+Sau evaluation, các file quan trọng là:
+
+- `outputs/<run_name>/metrics/metrics.csv`: bảng PSNR, SSIM, LPIPS, runtime.
+- `outputs/<run_name>/images/*_inpainted.png`: ảnh kết quả.
+- `outputs/<run_name>/visualizations/*_comparison.png`: ảnh ghép để minh họa định tính.
+
+Các kết quả này có thể dùng để lập bảng so sánh định lượng và chọn ví dụ trực quan cho báo cáo đồ án.
+
+## License
+
+Repo sử dụng license trong file `LICENSE`. Dataset CelebA-HQ/CelebAMask-HQ và model Hugging Face có điều khoản sử dụng riêng, cần tuân thủ khi chia sẻ hoặc công bố kết quả.
