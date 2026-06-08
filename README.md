@@ -9,6 +9,7 @@
 - Tải mô hình `runwayml/stable-diffusion-inpainting` bằng Diffusers.
 - Tiền xử lý ảnh và mask về cùng kích thước, mặc định `512x512`.
 - Sinh mask ngẫu nhiên theo 3 kiểu: `rectangle`, `rectangles`, `free_form`.
+- Tạo mask độc lập cho một ảnh hoặc nhiều ảnh trong thư mục.
 - Chạy inference cho một cặp ảnh-mask hoặc nhiều ảnh-mask trong cùng thư mục.
 - Chạy batch evaluation trên tập ảnh CelebA-HQ.
 - Tính các chỉ số PSNR, SSIM, LPIPS và thời gian chạy.
@@ -35,6 +36,7 @@ diffusion-image-inpainting/
 |   |-- visualizations/        Preview và ảnh so sánh.
 |   `-- metrics/               File metrics CSV.
 |-- scripts/
+|   |-- generate_masks.py      Tạo mask ngẫu nhiên cho một ảnh hoặc thư mục ảnh.
 |   |-- run_inference.py       Chạy inpainting cho một ảnh.
 |   |-- run_batch_inference.py Chạy inpainting cho nhiều ảnh trong thư mục.
 |   `-- run_evaluation.py      Chạy đánh giá hàng loạt.
@@ -244,7 +246,80 @@ python scripts/run_evaluation.py \
   --save_visualizations
 ```
 
-### 3. Chạy inference cho một ảnh-mask
+### 3. Tạo mask để chạy inference
+
+Nếu chưa có mask sẵn, dùng `scripts/generate_masks.py` để tạo mask ngẫu nhiên. Script hỗ trợ 3 kiểu mask: `rectangle`, `rectangles`, `free_form`.
+
+Tạo mask cho một ảnh:
+
+```bash
+python scripts/generate_masks.py \
+  --image data/samples/input.jpg \
+  --output_dir data/samples/masks \
+  --mask_type rectangle \
+  --mask_ratio 0.25 \
+  --save_preview \
+  --preview_dir outputs/visualizations
+```
+
+Kết quả:
+
+```text
+data/samples/masks/input_mask.png
+outputs/visualizations/input_masked.png
+```
+
+Tạo mask cho nhiều ảnh trong thư mục:
+
+```bash
+python scripts/generate_masks.py \
+  --input_dir data/batch/images \
+  --output_dir data/batch/masks \
+  --output_suffix "" \
+  --mask_type rectangles \
+  --num_rectangles 3 \
+  --min_ratio 0.05 \
+  --max_ratio 0.2 \
+  --save_preview \
+  --preview_dir outputs/batch_masks_preview
+```
+
+Tạo free-form mask:
+
+```bash
+python scripts/generate_masks.py \
+  --input_dir data/batch/images \
+  --output_dir data/batch/masks \
+  --output_suffix "" \
+  --mask_type free_form \
+  --num_strokes 8 \
+  --max_vertices 8 \
+  --max_width 40
+```
+
+Quy ước file mask mặc định:
+
+```text
+input.jpg -> input_mask.png
+```
+
+Nếu dùng mask này cho `run_inference.py`, truyền trực tiếp đường dẫn mask:
+
+```bash
+python scripts/run_inference.py \
+  --image data/samples/input.jpg \
+  --mask data/samples/masks/input_mask.png \
+  --output outputs/images/input_result.png
+```
+
+Nếu dùng mask này cho `run_batch_inference.py`, ảnh và mask cần cùng filename stem. Khi tạo mask cho batch inference, truyền `--output_suffix ""` để tạo mask khớp tên ảnh:
+
+```text
+data/batch/images/input.jpg
+data/batch/masks/input.png
+```
+
+### 4. Chạy inference cho một ảnh-mask
 
 Lệnh này dùng khi đã có ảnh và mask riêng:
 
@@ -266,7 +341,7 @@ Quy ước mask:
 - Vùng đen là phần ảnh được giữ lại.
 - Mask sẽ được resize và nhị phân hóa trong bước preprocessing.
 
-### 4. Chạy inference cho nhiều ảnh
+### 5. Chạy inference cho nhiều ảnh
 
 Lệnh này dùng khi đã có một thư mục ảnh và một thư mục mask tương ứng. Script sẽ load model một lần, sau đó chạy lần lượt từng ảnh.
 
@@ -367,6 +442,21 @@ Trong repo hiện tại `share=False`, phù hợp khi chạy local.
 - `--negative_prompt`: nội dung không mong muốn.
 - `--lpips_device`: thiết bị tính LPIPS, thường là `cuda` hoặc `cpu`.
 - `--save_visualizations`: lưu ảnh so sánh original/mask/masked/result.
+
+### `scripts/generate_masks.py`
+
+- `--image`: đường dẫn một ảnh đầu vào.
+- `--input_dir`: thư mục chứa nhiều ảnh đầu vào.
+- `--output_dir`: thư mục lưu mask, mặc định `outputs/masks`.
+- `--output_suffix`: hậu tố tên file mask, mặc định `_mask`; dùng `""` để khớp batch inference.
+- `--preview_dir`: thư mục lưu preview nếu bật `--save_preview`.
+- `--mask_type`: `rectangle`, `rectangles` hoặc `free_form`.
+- `--num_samples`: giới hạn số ảnh khi dùng `--input_dir`.
+- `--seed`: seed sinh mask.
+- `--save_preview`: lưu ảnh preview vùng bị mask.
+- `--mask_ratio`: tỉ lệ mask cho kiểu `rectangle`.
+- `--num_rectangles`, `--min_ratio`, `--max_ratio`: tham số cho kiểu `rectangles`.
+- `--num_strokes`, `--max_vertices`, `--max_width`: tham số cho kiểu `free_form`.
 
 ### `scripts/run_inference.py`
 
