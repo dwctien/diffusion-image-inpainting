@@ -4,6 +4,22 @@
 
 > Trạng thái hiện tại: repo dùng pretrained model từ Hugging Face Diffusers.
 
+## Mục lục
+
+- [Nội dung chính](#nội-dung-chính)
+- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+- [Yêu cầu môi trường](#yêu-cầu-môi-trường)
+- [Cấu hình mặc định](#cấu-hình-mặc-định)
+- [Cách đặt dataset CelebA-HQ](#cách-đặt-dataset-celeba-hq)
+- [Chạy pipeline với CelebA-HQ](#chạy-pipeline-với-celeba-hq)
+- [Fine-tuning LoRA trên Old Photo Inpainting](#fine-tuning-lora-trên-old-photo-inpainting)
+- [Chạy website demo](#chạy-website-demo)
+- [Tham số dòng lệnh quan trọng](#tham-số-dòng-lệnh-quan-trọng)
+- [Ghi chú khi chạy trên Kaggle hoặc Colab](#ghi-chú-khi-chạy-trên-kaggle-hoặc-colab)
+- [Lỗi thường gặp](#lỗi-thường-gặp)
+- [Kết quả đầu ra](#kết-quả-đầu-ra)
+- [License](#license)
+
 ## Nội dung chính
 
 - Tải mô hình `runwayml/stable-diffusion-inpainting` bằng Diffusers.
@@ -14,6 +30,7 @@
 - Chạy batch evaluation trên tập ảnh CelebA-HQ.
 - Tính các chỉ số PSNR, SSIM, LPIPS và thời gian chạy.
 - Lưu ảnh kết quả, mask, ảnh preview và file metrics CSV.
+- Fine-tune và đánh giá LoRA cho task old photo inpainting bằng notebook Kaggle.
 - Website demo Gradio hỗ trợ upload ảnh, tạo/vẽ mask và chạy inpainting.
 
 ## Cấu trúc thư mục
@@ -397,6 +414,29 @@ outputs/batch_inference/
     |-- 000001_masked.png
     `-- 000002_masked.png
 ```
+
+## Fine-tuning LoRA trên Old Photo Inpainting
+
+Repo có thêm hai notebook Kaggle cho nhánh thực nghiệm fine-tuning LoRA trên task old photo inpainting:
+
+- `notebooks/train_lora_old_photo_repair.ipynb`: fine-tune LoRA cho `runwayml/stable-diffusion-inpainting` trên dataset old photo đã xử lý.
+- `notebooks/evaluate_lora_old_photo_repair.ipynb`: đánh giá pretrained baseline và LoRA trên test split, bao gồm PSNR, SSIM, LPIPS, mask-region metrics và runtime.
+
+Dataset đã xử lý được publish tại:
+
+```text
+https://www.kaggle.com/datasets/dwctien/openphoto-restore-filtered-inpainting-subset
+```
+
+Dataset này được tạo từ OpenPhoto Restore Dataset, gồm hai split `train` và `test`. Mỗi mẫu có ảnh `damaged`, ảnh `pristine` và mask nhị phân được sinh tự động từ residual giữa hai ảnh.
+
+Nếu muốn chạy notebook evaluation ngay mà không train lại, có thể dùng LoRA checkpoint weights đã publish tại:
+
+```text
+https://www.kaggle.com/datasets/dwctien/old-photo-lora-weights
+```
+
+Các notebook này được thiết kế để chạy trên Kaggle GPU. Đây là nhánh thực nghiệm phục vụ báo cáo, độc lập với các script CLI inference/evaluation chính của repo.
 
 ## Chạy website demo
 
