@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import inspect
 import sys
 from io import BytesIO
 from pathlib import Path
@@ -166,6 +167,22 @@ def run_inpainting_handler(
 _CANVAS_JS_PATH = Path(__file__).with_name("canvas.js")
 _CANVAS_JS = _CANVAS_JS_PATH.read_text(encoding="utf-8") if _CANVAS_JS_PATH.exists() else ""
 
+APP_THEME = gr.themes.Soft(
+    primary_hue=gr.themes.colors.indigo,
+    secondary_hue=gr.themes.colors.purple,
+    neutral_hue=gr.themes.colors.slate,
+    font=gr.themes.GoogleFont("Inter"),
+)
+
+def _supports_kwarg(callable_obj: Any, name: str) -> bool:
+    try:
+        return name in inspect.signature(callable_obj).parameters
+    except (TypeError, ValueError):
+        return False
+
+def _head_html() -> str:
+    return f'<script type="text/javascript">\n{_CANVAS_JS}\n</script>'
+
 # ĐÃ XÓA THẺ <script>
 CANVAS_HTML = """
 <div id="mp-container">
@@ -239,7 +256,17 @@ def create_demo() -> gr.Blocks:
     # Nạp nội dung từ file JS thẳng vào tham số "head"
     head_html = f'<script type="text/javascript">\n{_CANVAS_JS}\n</script>'
 
-    with gr.Blocks(title="Diffusion Image Inpainting", head=head_html, fill_width=True) as demo:
+    blocks_kwargs: dict[str, Any] = {
+        "title": "Diffusion Image Inpainting",
+        "fill_width": True,
+        "theme": APP_THEME,
+    }
+    if _supports_kwarg(gr.Blocks, "head"):
+        blocks_kwargs["head"] = head_html
+    if _supports_kwarg(gr.Blocks, "css"):
+        blocks_kwargs["css"] = CUSTOM_CSS
+
+    with gr.Blocks(**blocks_kwargs) as demo:
         gr.HTML("""
         <div id="app-header">
           <h1>🎨 Diffusion Image Inpainting</h1>
@@ -328,4 +355,16 @@ def create_demo() -> gr.Blocks:
 
 if __name__ == "__main__":
     app = create_demo()
-    app.launch(server_name="0.0.0.0", server_port=7860, share=False, show_error=True, css=CUSTOM_CSS, theme=gr.themes.Soft(primary_hue=gr.themes.colors.indigo, secondary_hue=gr.themes.colors.purple, neutral_hue=gr.themes.colors.slate, font=gr.themes.GoogleFont("Inter")))
+    launch_kwargs: dict[str, Any] = {
+        "server_name": "0.0.0.0",
+        "server_port": 7860,
+        "share": False,
+        "show_error": True,
+    }
+    launch_method = type(app).launch
+    if _supports_kwarg(launch_method, "head") and not _supports_kwarg(gr.Blocks, "head"):
+        launch_kwargs["head"] = _head_html()
+    if _supports_kwarg(launch_method, "css") and not _supports_kwarg(gr.Blocks, "css"):
+        launch_kwargs["css"] = CUSTOM_CSS
+
+    app.launch(**launch_kwargs)
