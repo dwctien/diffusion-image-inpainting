@@ -419,6 +419,7 @@ outputs/batch_inference/
 
 Repo có thêm hai notebook Kaggle cho nhánh thực nghiệm fine-tuning LoRA trên task old photo inpainting:
 
+- `notebooks/data_preprocess_old_photo_repair.ipynb`: xử lý OpenPhoto Restore Dataset, sinh mask tự động, kiểm tra chất lượng mask và đóng gói dataset train/test cho inpainting.
 - `notebooks/train_lora_old_photo_repair.ipynb`: fine-tune LoRA cho `runwayml/stable-diffusion-inpainting` trên dataset old photo đã xử lý.
 - `notebooks/evaluate_lora_old_photo_repair.ipynb`: đánh giá pretrained baseline và LoRA trên test split, bao gồm PSNR, SSIM, LPIPS, mask-region metrics và runtime.
 
@@ -427,8 +428,6 @@ Dataset đã xử lý được publish tại:
 ```text
 https://www.kaggle.com/datasets/dwctien/openphoto-restore-filtered-inpainting-subset
 ```
-
-Dataset này được tạo từ OpenPhoto Restore Dataset, gồm hai split `train` và `test`. Mỗi mẫu có ảnh `damaged`, ảnh `pristine` và mask nhị phân được sinh tự động từ residual giữa hai ảnh.
 
 Nếu muốn chạy notebook evaluation ngay mà không train lại, có thể dùng LoRA checkpoint weights đã publish tại:
 
