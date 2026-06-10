@@ -234,15 +234,15 @@ CUSTOM_CSS = """
 .mp-clear-btn:hover { background:rgba(239,68,68,.25); }
 
 /* Chốt chặn 2: Ép Canvas bung width 100% thay vì tự động (auto) như trước */
-#mask-draw-canvas { 
-  background:#111; 
+#mask-draw-canvas {
+  background:#111;
   width: 80% !important;  /* Bắt buộc chiếm toàn bộ bề ngang của cột */
-  height: auto !important; 
+  height: auto !important;
   max-height: 75vh !important; /* Vẫn giữ giới hạn chiều cao để không trôi nút đi mất */
-  object-fit: contain; 
-  display:block; 
-  margin:0 auto; 
-  touch-action:none; 
+  object-fit: contain;
+  display:block;
+  margin:0 auto;
+  touch-action:none;
 }
 
 #result-img { border:2px solid rgba(99,102,241,.25)!important; border-radius:14px!important; box-shadow:0 4px 18px rgba(99,102,241,.12)!important; }
@@ -302,7 +302,7 @@ def create_demo() -> gr.Blocks:
                 gr.Markdown("### 👁️ Preview")
                 with gr.Row():
                     mask_display = gr.Image(label="Mask", type="pil", height=180, interactive=False)
-                    preview_display = gr.Image(label="Ảnh + Mask (đỏ = inpaint)", type="pil", height=180, interactive=False)
+                    preview_display = gr.Image(label="Ảnh + Mask", type="pil", height=180, interactive=False)
 
             with gr.Column(scale=4):
                 gr.Markdown("### ⚙️ Bước 3 — Cài đặt")
